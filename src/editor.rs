@@ -50,8 +50,11 @@ pub(crate) fn create(
                 .child_top(Stretch(1.0))
                 .child_bottom(Pixels(0.0));
 
-            Label::new(cx, "Gain");
+            Label::new(cx, "gain");
             ParamSlider::new(cx, Data::params, |params| &params.gain);
+
+            Label::new(cx, "lookahead");
+            ParamSlider::new(cx, Data::params, |params| &params.lookahead);
 
             PeakMeter::new(
                 cx,

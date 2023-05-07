@@ -51,8 +51,8 @@ struct EscParams {
     #[id = "gain"]
     pub gain: FloatParam,
 
-    #[id = "delay_time"]
-    pub delay_time: FloatParam,
+    #[id = "lookahead"]
+    pub lookahead: FloatParam,
 }
 
 impl Default for Esc {
@@ -81,7 +81,7 @@ impl Default for EscParams {
             editor_state: editor::default_state(),
 
             gain: FloatParam::new(
-                "Gain",
+                "gain",
                 util::db_to_gain(0.0),
                 FloatRange::Skewed {
                     min: util::db_to_gain(-120.0),
@@ -94,8 +94,8 @@ impl Default for EscParams {
             .with_value_to_string(formatters::v2s_f32_gain_to_db(2))
             .with_string_to_value(formatters::s2v_f32_gain_to_db()),
 
-            delay_time: FloatParam::new(
-                "Delay Time",
+            lookahead: FloatParam::new(
+                "lookahead",
                 0.0,
                 FloatRange::Linear {
                     min: 0.0,
@@ -190,7 +190,7 @@ impl Plugin for Esc {
         context: &mut impl ProcessContext<Self>,
     ) -> ProcessStatus {
 
-        let delay_time = self.params.delay_time.smoothed.next();
+        let delay_time = self.params.lookahead.smoothed.next();
         let latency_samples = (delay_time / 1000.0 * self.sample_rate.load(Ordering::Relaxed)) as u32;
         context.set_latency_samples(latency_samples);
 
