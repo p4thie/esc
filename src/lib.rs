@@ -99,11 +99,11 @@ impl Default for EscParams {
                 0.0,
                 FloatRange::Linear {
                     min: 0.0,
-                    max: 100.0,
+                    max: 15.0,
                 },
             )
-            .with_smoother(SmoothingStyle::Linear(50.0))
             .with_unit(" ms")
+            .with_step_size(0.1)
         }
     }
 }
@@ -163,7 +163,7 @@ impl Plugin for Esc {
         &mut self,
         audio_io_layout: &AudioIOLayout,
         buffer_config: &BufferConfig,
-        context: &mut impl InitContext<Self>,
+        _context: &mut impl InitContext<Self>,
     ) -> bool {
         self.sample_rate
         .store(buffer_config.sample_rate, Ordering::Relaxed);
@@ -180,8 +180,6 @@ impl Plugin for Esc {
 
         self.delay.initialize(audio_io_layout.aux_input_ports[0].get() as usize, sample_rate);
 
-        context.set_latency_samples(0);
-
         true
     }
 
@@ -189,12 +187,13 @@ impl Plugin for Esc {
         &mut self,
         buffer: &mut Buffer,
         aux: &mut AuxiliaryBuffers,
-        _context: &mut impl ProcessContext<Self>,
+        context: &mut impl ProcessContext<Self>,
     ) -> ProcessStatus {
 
         let delay_time = self.params.delay_time.smoothed.next();
-        //let latency_samples = (delay_time / 1000.0 * self.sample_rate.load(Ordering::Relaxed)) as u32;
-        //context.set_latency_samples(latency_samples);
+        let latency_samples = (delay_time / 1000.0 * self.sample_rate.load(Ordering::Relaxed)) as u32;
+        context.set_latency_samples(latency_samples);
+
 
         for (main_channel_samples, sc_channel_samples) in buffer.iter_samples().zip(&mut aux.inputs[0].iter_samples()) {
             let mut amplitude = 0.0;
@@ -205,11 +204,11 @@ impl Plugin for Esc {
                     
                 *sc_sample = self.filter.process(sc_sample.abs());
                 *sc_sample = self.softclip(*sc_sample * gain);
-    
-                *sample -= *sample * *sc_sample;
-                //*sample += *sc_sample;
 
                 *sample = self.delay.process(channel_idx, *sample, delay_time);
+
+                *sample -= *sample * *sc_sample;
+                //*sample += *sc_sample;
             }
     
             // To save resources, a plugin can (and probably should!) only perform expensive
