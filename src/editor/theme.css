@@ -3,12 +3,12 @@
 :root {
   background-color: #0a0a0a;
   color: #fafafa;
-  font-size: 15;
+  font-size: 12;
 }
 
 scrollview > vstack {
   /* Normally the scroll bar overlaps with the content, so we'll add a little offset to prevent that */
-  child-right: 15px;
+  /*child-right: 15px;*/
 }
 scrollview scrollbar {
   background-color: #dadada;
@@ -32,4 +32,19 @@ scrollview scrollbar .thumb {
 scrollview scrollbar .thumb:hover {
   background-color: #808080;
   transition: background-color 0.1 0;
+}
+
+#param-sliders .param-label {
+  width: 100px;
+  height: 25px;
+  child-top: 1s;
+  child-right: 10px;
+  child-bottom: 1s;
+  child-left: 1s;
+}
+
+#visualizer {
+  color: #eeeeee;
+  stretch: 6s;
+  top: 0s;
 }

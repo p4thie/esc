@@ -1,17 +1,16 @@
 #![feature(portable_simd)]
 
-
-// use filter::iir::{IirFilter, IirFilterType};
 use atomic_float::AtomicF32;
-use nih_plug::prelude::*;
+use nih_plug::{buffer, prelude::*};
 use nih_plug_vizia::ViziaState;
-use std::{sync::Arc, f32::INFINITY};
-use std::sync::atomic::{AtomicBool, Ordering};
-use std::simd::f32x2;
+use std::sync::atomic::Ordering;
+use std::sync::Arc;
+use visualizer::Visualizer;
 
+mod delay;
 mod editor;
 mod filter;
-mod delay;
+pub mod visualizer;
 
 /// The time it takes for the peak meter to decay by 12 dB after switching to complete silence.
 const PEAK_METER_DECAY_MS: f64 = 150.0;
@@ -39,6 +38,7 @@ pub struct Esc {
     filter: filter::Biquad<f32>,
 
     delay: delay::RingBuffer,
+    visualizer: Arc<Visualizer>,
 }
 
 #[derive(Params)]
@@ -58,19 +58,16 @@ struct EscParams {
 impl Default for Esc {
     fn default() -> Self {
         let sample_rate = Arc::new(AtomicF32::new(1.0));
-    
+
         Self {
-            params: Arc::new(
-                EscParams::default(),
-            ),
+            params: Arc::new(EscParams::default()),
 
             sample_rate,
             filter: filter::Biquad::default(),
             delay: delay::RingBuffer::default(),
+            visualizer: Arc::new(Visualizer::new()),
             peak_meter_decay_weight: 1.0,
             peak_meter: Arc::new(AtomicF32::new(util::MINUS_INFINITY_DB)),
-
-
         }
     }
 }
@@ -84,9 +81,9 @@ impl Default for EscParams {
                 "gain",
                 util::db_to_gain(0.0),
                 FloatRange::Skewed {
-                    min: util::db_to_gain(-120.0),
-                    max: util::db_to_gain(24.0),
-                    factor: FloatRange::gain_skew_factor(-120.0, 24.0),
+                    min: util::db_to_gain(-100.0),
+                    max: util::db_to_gain(15.0),
+                    factor: FloatRange::gain_skew_factor(-100.0, 15.0),
                 },
             )
             .with_smoother(SmoothingStyle::Logarithmic(50.0))
@@ -103,7 +100,7 @@ impl Default for EscParams {
                 },
             )
             .with_unit(" ms")
-            .with_step_size(0.1)
+            .with_step_size(0.1),
         }
     }
 }
@@ -156,6 +153,7 @@ impl Plugin for Esc {
             self.params.clone(),
             self.peak_meter.clone(),
             self.params.editor_state.clone(),
+            Arc::clone(&self.visualizer),
         )
     }
 
@@ -166,19 +164,21 @@ impl Plugin for Esc {
         _context: &mut impl InitContext<Self>,
     ) -> bool {
         self.sample_rate
-        .store(buffer_config.sample_rate, Ordering::Relaxed);
+            .store(buffer_config.sample_rate, Ordering::Relaxed);
         let sample_rate = self.sample_rate.load(Ordering::Relaxed);
-
 
         // After `PEAK_METER_DECAY_MS` milliseconds of pure silence, the peak meter's value should
         // have dropped by 12 dB
         self.peak_meter_decay_weight = 0.25f64
             .powf((buffer_config.sample_rate as f64 * PEAK_METER_DECAY_MS / 1000.0).recip())
             as f32;
-        
-        self.filter.coefficients = filter::BiquadCoefficients::lowpass(sample_rate, 5.0, 0.72);
 
-        self.delay.initialize(audio_io_layout.aux_input_ports[0].get() as usize, sample_rate);
+        self.filter.coefficients = filter::BiquadCoefficients::lowpass(sample_rate, 15.0, 0.707);
+
+        self.delay.initialize(
+            audio_io_layout.aux_input_ports[0].get() as usize,
+            sample_rate,
+        );
 
         true
     }
@@ -189,43 +189,39 @@ impl Plugin for Esc {
         aux: &mut AuxiliaryBuffers,
         context: &mut impl ProcessContext<Self>,
     ) -> ProcessStatus {
+        let mut amplitude = 0.0;
 
         let delay_time = self.params.lookahead.smoothed.next();
-        let latency_samples = (delay_time / 1000.0 * self.sample_rate.load(Ordering::Relaxed)) as u32;
+
+        let latency_samples =
+            (delay_time / 1000.0 * self.sample_rate.load(Ordering::Relaxed)) as u32;
         context.set_latency_samples(latency_samples);
 
-
-        for (main_channel_samples, sc_channel_samples) in buffer.iter_samples().zip(&mut aux.inputs[0].iter_samples()) {
-            let mut amplitude = 0.0;
-            let num_samples = main_channel_samples.len();
-    
-            let gain = self.params.gain.smoothed.next();                
-            for (channel_idx, (sample, sc_sample)) in main_channel_samples.into_iter().zip(&mut sc_channel_samples.into_iter()).enumerate()  {
-                    
+        for (main_channel_samples, sc_channel_samples) in
+            buffer.iter_samples().zip(&mut aux.inputs[0].iter_samples())
+        {
+            let gain = self.params.gain.smoothed.next();
+            for (channel_idx, (sample, sc_sample)) in main_channel_samples
+                .into_iter()
+                .zip(&mut sc_channel_samples.into_iter())
+                .enumerate()
+            {
                 *sc_sample = self.filter.process(sc_sample.abs());
                 *sc_sample = self.softclip(*sc_sample * gain);
 
                 *sample = self.delay.process(channel_idx, *sample, delay_time);
 
                 *sample -= *sample * *sc_sample;
-                //*sample += *sc_sample;
+                //*sample = *sc_sample;
+                amplitude += sample.abs();
             }
-    
-            // To save resources, a plugin can (and probably should!) only perform expensive
-            // calculations that are only displayed on the GUI while the GUI is open
-            if self.params.editor_state.is_open() {
-                amplitude = (amplitude / num_samples as f32).abs();
-                let current_peak_meter = self.peak_meter.load(std::sync::atomic::Ordering::Relaxed);
-                let new_peak_meter = if amplitude > current_peak_meter {
-                    amplitude
-                } else {
-                    current_peak_meter * self.peak_meter_decay_weight
-                    + amplitude * (1.0 - self.peak_meter_decay_weight)
-                };
-    
-                self.peak_meter
-                    .store(new_peak_meter, std::sync::atomic::Ordering::Relaxed)
-                }
+        }
+
+        // To save resources, a plugin can (and probably should!) only perform expensive
+        // calculations that are only displayed on the GUI while the GUI is open
+        if self.params.editor_state.is_open() {
+            amplitude /= buffer.samples() as f32 * buffer.channels() as f32;
+            self.visualizer.store(amplitude);
         }
         ProcessStatus::Normal
     }
