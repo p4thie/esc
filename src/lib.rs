@@ -38,7 +38,8 @@ pub struct Esc {
     filter: filter::Biquad<f32>,
 
     delay: delay::RingBuffer,
-    visualizer: Arc<Visualizer>,
+    visualizer_main: Arc<Visualizer>,
+    visualizer_sc: Arc<Visualizer>,
 }
 
 #[derive(Params)]
@@ -65,7 +66,8 @@ impl Default for Esc {
             sample_rate,
             filter: filter::Biquad::default(),
             delay: delay::RingBuffer::default(),
-            visualizer: Arc::new(Visualizer::new()),
+            visualizer_main: Arc::new(Visualizer::new()),
+            visualizer_sc: Arc::new(Visualizer::new()),
             peak_meter_decay_weight: 1.0,
             peak_meter: Arc::new(AtomicF32::new(util::MINUS_INFINITY_DB)),
         }
@@ -83,7 +85,7 @@ impl Default for EscParams {
                 FloatRange::Skewed {
                     min: util::db_to_gain(-100.0),
                     max: util::db_to_gain(15.0),
-                    factor: FloatRange::gain_skew_factor(-100.0, 15.0),
+                    factor: FloatRange::gain_skew_factor(util::MINUS_INFINITY_DB, 15.0),
                 },
             )
             .with_smoother(SmoothingStyle::Logarithmic(50.0))
@@ -153,7 +155,8 @@ impl Plugin for Esc {
             self.params.clone(),
             self.peak_meter.clone(),
             self.params.editor_state.clone(),
-            Arc::clone(&self.visualizer),
+            Arc::clone(&self.visualizer_main),
+            Arc::clone(&self.visualizer_sc),
         )
     }
 
@@ -189,7 +192,8 @@ impl Plugin for Esc {
         aux: &mut AuxiliaryBuffers,
         context: &mut impl ProcessContext<Self>,
     ) -> ProcessStatus {
-        let mut amplitude = 0.0;
+        let mut amplitude_main = 0.0;
+        let mut amplitude_sc = 0.0;
 
         let delay_time = self.params.lookahead.smoothed.next();
 
@@ -213,15 +217,19 @@ impl Plugin for Esc {
 
                 *sample -= *sample * *sc_sample;
                 //*sample = *sc_sample;
-                amplitude += sample.abs();
+                amplitude_main += sample.abs();
+                amplitude_sc += *sc_sample;
             }
         }
 
         // To save resources, a plugin can (and probably should!) only perform expensive
         // calculations that are only displayed on the GUI while the GUI is open
         if self.params.editor_state.is_open() {
-            amplitude /= buffer.samples() as f32 * buffer.channels() as f32;
-            self.visualizer.store(amplitude);
+            amplitude_main /= buffer.samples() as f32 * buffer.channels() as f32;
+            self.visualizer_main.store(amplitude_main);
+
+            amplitude_sc /= buffer.samples() as f32 * buffer.channels() as f32;
+            self.visualizer_sc.store(amplitude_sc);
         }
         ProcessStatus::Normal
     }

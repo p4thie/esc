@@ -6,45 +6,47 @@
   font-size: 12;
 }
 
-scrollview > vstack {
-  /* Normally the scroll bar overlaps with the content, so we'll add a little offset to prevent that */
-  /*child-right: 15px;*/
-}
 scrollview scrollbar {
   background-color: #dadada;
   border-radius: 0;
   child-space: 0;
 }
-scrollview scrollbar.horizontal {
-  right: 10px;
-  height: 10px;
-}
-scrollview scrollbar.vertical {
-  width: 10px;
-}
-scrollview scrollbar .thumb {
-  background-color: #5d5d5d;
-  border-radius: 0;
-  min-width: 10px;
-  min-height: 10px;
-  transition: background-color 0.1 0;
-}
-scrollview scrollbar .thumb:hover {
-  background-color: #808080;
-  transition: background-color 0.1 0;
-}
 
-#param-sliders .param-label {
-  width: 100px;
-  height: 25px;
-  child-top: 1s;
-  child-right: 10px;
-  child-bottom: 1s;
-  child-left: 1s;
+#param-sliders {
+  top: 1px;
 }
 
 #visualizer {
-  color: #eeeeee;
-  stretch: 6s;
-  top: 0s;
+  top: 1px;
+  background-color: #222222;
+}
+
+#visualizer_main {
+  color: #fafafa;
+  stretch: 1s;
+}
+
+#visualizer_sc {
+  color: #666666;
+  stretch: 1s;
+}
+
+#plugin-desc {
+  left: 0s;
+  right: 1s;
+}
+
+#plugin-label {
+child-space: 10px;
+  background-color: #0000aa;
+  top: 1s;
+  bottom: 1s;
+}
+
+#plugin-version {
+  color: #666666;
+  font-size: 8;
+  top: 1s;
+  bottom: 1s;
+
 }
