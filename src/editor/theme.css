@@ -38,7 +38,7 @@ scrollview scrollbar {
 
 #plugin-label {
 child-space: 10px;
-  background-color: #2ed2a0;
+  background-color: #009A9D;
   top: 1s;
   bottom: 1s;
 }
@@ -46,7 +46,10 @@ child-space: 10px;
 #plugin-version {
   color: #666666;
   font-size: 8;
+  bottom: 1px;
+  right: 1s;
+  position-type: self-directed;
+  left: 2px;
   top: 1s;
-  bottom: 1s;
-
+  z-index: 1337;
 }

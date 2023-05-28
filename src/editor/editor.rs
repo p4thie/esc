@@ -62,10 +62,6 @@ pub(crate) fn create(
                     .font_family(vec![FamilyOwned::Name(String::from(FRAGMENT))])
                     .height(Pixels(25.0))
                     .id("plugin-label");
-                Label::new(cx, "0.1.0")
-                    .font_family(vec![FamilyOwned::Name(String::from(FRAGMENT))])
-                    .left(Percentage(5.0))
-                    .id("plugin-version");
             })
             .height(Pixels(12.0))
             .id("plugin-desc");
@@ -93,5 +89,8 @@ pub(crate) fn create(
         });
 
         ResizeHandle::new(cx);
+        Label::new(cx, "0.1.0")
+            .font_family(vec![FamilyOwned::Name(String::from(FRAGMENT))])
+            .id("plugin-version");
     })
 }

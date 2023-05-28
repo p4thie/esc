@@ -33,22 +33,22 @@ param-slider {
   width: 100px;
   border-radius: 1px;
   border-color: transparent;
-  background-color: #2f4858;
+  background-color: #222222;
   transition: background-color 0.1 0;
 }
 
 /* Vizia doesn't support commas in selectors */
 /* Also, WTB Sass */
 param-slider:active {
-  background-color: #236276;
+  background-color: #2e2e2e;
 }
 param-slider:hover {
-  background-color: #222222;
+  background-color: #2e2e2e;
 }
 
 param-slider .fill {
   border-radius: 1px;
-  background-color: #2ed2a0;
+  background-color: #009A9D;
 }
 param-slider .fill--modulation {
   background-color: #a4eafc69;
