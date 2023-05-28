@@ -1,0 +1,91 @@
+/* Default styling for the widgets included in nih_plug_vizia */
+/* See ./theme.css for overrides for the default widgets */
+
+generic-ui {
+  child-space: 10px;
+  width: 200px;
+  left: 1s;
+  right: 1s;
+  col-between: 0px;
+  layout-type: column;
+  row-between: 0px;
+}
+scrollview > vstack > generic-ui {
+  child-space: 0px;
+
+  /* Our scrollview styling will already add some padding here */
+}
+
+generic-ui .row {
+  col-between: 8px;
+  layout-type: row;
+}
+
+ generic-ui .label {
+  left: 1s;
+  top: 1s;
+  bottom: 1s;
+  right: 0;
+} 
+
+param-slider {
+  height: 30px;
+  width: 100px;
+  border-radius: 1px;
+  border-color: transparent;
+  background-color: #2f4858;
+  transition: background-color 0.1 0;
+}
+
+/* Vizia doesn't support commas in selectors */
+/* Also, WTB Sass */
+param-slider:active {
+  background-color: #236276;
+}
+param-slider:hover {
+  background-color: #222222;
+}
+
+param-slider .fill {
+  border-radius: 1px;
+  background-color: #2ed2a0;
+}
+param-slider .fill--modulation {
+  background-color: #a4eafc69;
+}
+
+/* This is a textbox, but we want it to appear just like the label */
+param-slider .value-entry {
+  /* Vizia doesn't support the unset value */
+  background-color: transparent;
+  border-width: 0px;
+}
+param-slider .value-entry .caret {
+  background-color: #0a0a0a;
+}
+param-slider .value-entry .selection {
+  background-color: #0a0a0a30;
+}
+
+resize-handle {
+  bottom: 0;
+  color: #ffffff;
+  height: 15px;
+  left: 1s;
+  opacity: 0.4;
+  position-type: self-directed;
+  right: 0;
+  top: 1s;
+  transition: opacity 0.1 0;
+  width: 15px;
+  z-index: 1337;
+}
+resize-handle:active {
+  opacity: 0.8;
+  transition: opacity 0.1 0;
+}
+/* No commas in VIZIA */
+resize-handle:hover {
+  opacity: 0.8;
+  transition: opacity 0.1 0;
+}
