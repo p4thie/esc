@@ -33,6 +33,7 @@ If there are any problems or suggestions or what-not, feel free to open issues o
 
 ## Licensing
 All code is licensed under the [GPLv3](https://www.gnu.org/licenses/gpl-3.0.txt) license.
+
 `Fragment Mono` is licensed under [SIL Open Font License](https://scripts.sil.org/cms/scripts/page.php?item_id=OFL_web).
 
 ## Acknowledgements
