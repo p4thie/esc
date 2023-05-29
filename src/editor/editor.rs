@@ -42,7 +42,8 @@ pub(crate) fn create(
         cx.add_theme(include_str!("theme.css"));
         cx.add_theme(include_str!("widgets.css"));
 
-        const FRAGMENTPATH: &[u8] = include_bytes!("./FragmentMono-Regular.ttf");
+        const FRAGMENTPATH: &[u8] =
+            include_bytes!("./fragment_mono/fonts/ttf/FragmentMono-Regular.ttf");
 
         cx.add_fonts_mem(&[FRAGMENTPATH]);
 
