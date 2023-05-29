@@ -29,7 +29,6 @@ pub struct RingBuffer {
     audio_buffers: Vec<Vec<f32>>,
     /// The current playback /read position in `playback_buffers`.
     read_sample_pos: Vec<usize>,
-
 }
 
 impl Default for RingBuffer {
@@ -43,14 +42,12 @@ impl Default for RingBuffer {
 }
 
 impl RingBuffer {
-
     pub fn initialize(&mut self, num_channels: usize, sample_rate: f32) {
-
         nih_debug_assert!(num_channels >= 1);
         nih_debug_assert!(sample_rate > 0.0);
 
-        // allocate 0.1 seconds of audio buffers 
-        let buffer_len = (sample_rate * 0.1) as usize;
+        // allocate 0.02 seconds of audio buffers
+        let buffer_len = (sample_rate * 0.02) as usize;
 
         // resize buffers
         self.audio_buffers.resize_with(num_channels, Vec::new);
@@ -71,11 +68,12 @@ impl RingBuffer {
     /// this will store the input samples into the bufffer and return the input value as is.
     /// Afterwards it will read the previously recorded data from the buffer. The read/write
     /// position is advanced whenever the last channel is written to.
-    pub fn process (&mut self, channel_idx: usize, input_sample: f32, delay_time: f32) -> f32 {
+    pub fn process(&mut self, channel_idx: usize, input_sample: f32, delay_time: f32) -> f32 {
         let delay_time_sec = delay_time / 1000.0;
         let delay_time_sample = (delay_time_sec * self.sample_rate) as usize;
 
-        let write_sample_pos = (self.read_sample_pos[channel_idx] + delay_time_sample) % self.audio_buffers[0].len();
+        let write_sample_pos =
+            (self.read_sample_pos[channel_idx] + delay_time_sample) % self.audio_buffers[0].len();
 
         self.audio_buffers[channel_idx][write_sample_pos] = input_sample;
 
@@ -85,8 +83,8 @@ impl RingBuffer {
         // TODO: This can be done more efficiently, but you really won't notice the performance
         //       impact here
         self.read_sample_pos[channel_idx] += 1;
-            if self.read_sample_pos[channel_idx] == self.audio_buffers[0].len() {
-                self.read_sample_pos[channel_idx] = 0;
+        if self.read_sample_pos[channel_idx] == self.audio_buffers[0].len() {
+            self.read_sample_pos[channel_idx] = 0;
         }
         result
     }

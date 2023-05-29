@@ -21,24 +21,6 @@ cargo xtask bundle esc --release
 
 Note that in order to compile you must:
 - install a rust toolchain `nightly-2022-10-30` (specified in `rust-toolchain.toml`)
-- download `.ttf` file for [Fragment Mono](https://fonts.google.com/specimen/Fragment+Mono)
-then organize your folders like below
-
-```shell
-.
-├── esc
-│   ├── bundler.toml
-│   ├── Cargo.lock
-│   ├── Cargo.toml
-│   ├── README.md
-│   ├── rust-toolchain.toml
-│   ├── screenshot.png
-│   ├── src
-│   ├── target
-│   └── xtask
-└── fonts
-    └── FragmentMono-Regular.ttf
-```
 
 ## TODO:
 - include `Releases` for different platforms
