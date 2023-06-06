@@ -12,7 +12,7 @@
 // GNU General Public License for more details.
 //
 // You should have received a copy of the GNU General Public License
-// along with this program.  If not, see <https://www.gnu.org/licenses/>.
+// alongwith this program.  If not, see <https://www.gnu.org/licenses/>.
 
 use nih_plug::debug::nih_debug_assert;
 
@@ -27,7 +27,8 @@ pub struct RingBuffer {
 
     // internal buffers
     audio_buffers: Vec<Vec<f32>>,
-    /// The current playback /read position in `playback_buffers`.
+    /// The current playback / read position in `playback_buffers`.
+    /// To hold read positions for each channel, we prepare a vector
     read_sample_pos: Vec<usize>,
 }
 
@@ -42,12 +43,12 @@ impl Default for RingBuffer {
 }
 
 impl RingBuffer {
-    pub fn initialize(&mut self, num_channels: usize, sample_rate: f32) {
+    pub fn initialize(&mut self, num_channels: usize, sample_rate: f32, buffer_len: f32) {
         nih_debug_assert!(num_channels >= 1);
         nih_debug_assert!(sample_rate > 0.0);
 
-        // allocate 0.02 seconds of audio buffers
-        let buffer_len = (sample_rate * 0.02) as usize;
+        // allocate `buffer_len as f32` seconds of audio buffers with size `buffer_len as usize`
+        let buffer_len = (sample_rate * buffer_len) as usize;
 
         // resize buffers
         self.audio_buffers.resize_with(num_channels, Vec::new);

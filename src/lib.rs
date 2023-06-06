@@ -10,6 +10,7 @@ use visualizer::Visualizer;
 mod delay;
 mod editor;
 mod filter;
+mod peakhold;
 pub mod visualizer;
 
 /// The time it takes for the peak meter to decay by 12 dB after switching to complete silence.
@@ -84,8 +85,8 @@ impl Default for EscParams {
                 util::db_to_gain(0.0),
                 FloatRange::Skewed {
                     min: util::db_to_gain(-100.0),
-                    max: util::db_to_gain(15.0),
-                    factor: FloatRange::gain_skew_factor(util::MINUS_INFINITY_DB, 15.0),
+                    max: util::db_to_gain(24.0),
+                    factor: FloatRange::gain_skew_factor(util::MINUS_INFINITY_DB, 24.0),
                 },
             )
             .with_smoother(SmoothingStyle::Logarithmic(50.0))
@@ -169,6 +170,7 @@ impl Plugin for Esc {
         self.sample_rate
             .store(buffer_config.sample_rate, Ordering::Relaxed);
         let sample_rate = self.sample_rate.load(Ordering::Relaxed);
+        let buffer_len = 0.02;
 
         // After `PEAK_METER_DECAY_MS` milliseconds of pure silence, the peak meter's value should
         // have dropped by 12 dB
@@ -181,6 +183,7 @@ impl Plugin for Esc {
         self.delay.initialize(
             audio_io_layout.aux_input_ports[0].get() as usize,
             sample_rate,
+            buffer_len,
         );
 
         true
@@ -217,7 +220,8 @@ impl Plugin for Esc {
 
                 *sample -= *sample * *sc_sample;
                 //*sample = *sc_sample;
-                amplitude_main += sample.abs();
+                let temp = *sample;
+                amplitude_main += temp.abs();
                 amplitude_sc += *sc_sample;
             }
         }
