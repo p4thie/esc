@@ -38,6 +38,7 @@ pub struct Esc {
     /// actually active.
     filter: filter::Biquad<f32>,
 
+    peakhold: peakhold::PeakHold,
     delay: delay::RingBuffer,
     visualizer_main: Arc<Visualizer>,
     visualizer_sc: Arc<Visualizer>,
@@ -67,6 +68,7 @@ impl Default for Esc {
             sample_rate,
             filter: filter::Biquad::default(),
             delay: delay::RingBuffer::default(),
+            peakhold: peakhold::PeakHold::default(),
             visualizer_main: Arc::new(Visualizer::new()),
             visualizer_sc: Arc::new(Visualizer::new()),
             peak_meter_decay_weight: 1.0,
@@ -171,6 +173,7 @@ impl Plugin for Esc {
             .store(buffer_config.sample_rate, Ordering::Relaxed);
         let sample_rate = self.sample_rate.load(Ordering::Relaxed);
         let buffer_len = 0.02;
+        let hold_time = 0.001;
 
         // After `PEAK_METER_DECAY_MS` milliseconds of pure silence, the peak meter's value should
         // have dropped by 12 dB
@@ -179,6 +182,12 @@ impl Plugin for Esc {
             as f32;
 
         self.filter.coefficients = filter::BiquadCoefficients::lowpass(sample_rate, 15.0, 0.707);
+
+        self.peakhold.initialize(
+            audio_io_layout.aux_input_ports[0].get() as usize,
+            sample_rate,
+            hold_time,
+        );
 
         self.delay.initialize(
             audio_io_layout.aux_input_ports[0].get() as usize,
@@ -198,11 +207,11 @@ impl Plugin for Esc {
         let mut amplitude_main = 0.0;
         let mut amplitude_sc = 0.0;
 
-        let delay_time = self.params.lookahead.smoothed.next();
+        // let delay_time = self.params.lookahead.smoothed.next();
 
-        let latency_samples =
-            (delay_time / 1000.0 * self.sample_rate.load(Ordering::Relaxed)) as u32;
-        context.set_latency_samples(latency_samples);
+        // let latency_samples =
+        //     (delay_time / 1000.0 * self.sample_rate.load(Ordering::Relaxed)) as u32;
+        // context.set_latency_samples(latency_samples);
 
         for (main_channel_samples, sc_channel_samples) in
             buffer.iter_samples().zip(&mut aux.inputs[0].iter_samples())
@@ -213,13 +222,14 @@ impl Plugin for Esc {
                 .zip(&mut sc_channel_samples.into_iter())
                 .enumerate()
             {
-                *sc_sample = self.filter.process(sc_sample.abs());
+                // *sc_sample = self.filter.process(sc_sample.abs());
                 *sc_sample = self.softclip(*sc_sample * gain);
+                *sc_sample = self.peakhold.process(channel_idx, sc_sample.abs());
 
-                *sample = self.delay.process(channel_idx, *sample, delay_time);
+                // *sample = self.delay.process(channel_idx, *sample, delay_time);
 
-                *sample -= *sample * *sc_sample;
-                //*sample = *sc_sample;
+                // *sample -= *sample * *sc_sample;
+                *sample = *sc_sample;
                 let temp = *sample;
                 amplitude_main += temp.abs();
                 amplitude_sc += *sc_sample;

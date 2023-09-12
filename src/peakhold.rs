@@ -31,13 +31,13 @@ impl PeakHold {
         let buffer_len = (sample_rate * hold_time) as usize + 1;
 
         // resize queues
-        self.deques.resize_with(num_channels, VecDeque::new());
+        // self.deques.resize_with(num_channels, Vec::new);
+        self.deques.resize_with(num_channels, VecDeque::new);
         for deque in self.deques.iter_mut() {
             deque.resize(deque_len, 0.0);
         }
 
-        self.audio_buffers
-            .resize_with(num_channels, VecDeque::new());
+        self.audio_buffers.resize_with(num_channels, VecDeque::new);
         for buffer in self.audio_buffers.iter_mut() {
             buffer.resize(buffer_len, 0.0);
         }
@@ -45,20 +45,23 @@ impl PeakHold {
         self.sample_rate = sample_rate;
     }
 
-    pub fn process(&mut self, channel_idx: usize, input_sample: f32) {
+    pub fn process(&mut self, channel_idx: usize, input_sample: f32) -> f32 {
         if self.deques[channel_idx].len() > 0 {
-            let index = self.deques[channel_idx].len() - 1;
-            while index >= 0 {
+            let mut index = self.deques[channel_idx].len() - 1;
+            loop {
                 if self.deques[channel_idx][index] < input_sample {
                     self.deques[channel_idx].pop_back();
                 } else {
                     break;
                 }
+                if index == 0 {
+                    break;
+                }
                 index -= 1;
             }
         }
-        self.deques[channel_idx].append(input_sample);
-        self.audio_buffers[channel_idx].append(input_sample);
+        self.deques[channel_idx].push_back(input_sample);
+        self.audio_buffers[channel_idx].push_back(input_sample);
 
         let delay_output = self.audio_buffers[channel_idx].pop_front().unwrap();
 
@@ -66,14 +69,14 @@ impl PeakHold {
             self.deques[channel_idx].pop_front();
         }
 
-        let result = 0.0;
+        let mut result = 0.0;
         if self.deques[channel_idx].len() > 0 {
             result = self.deques[channel_idx][0];
         }
         result
     }
 }
-
+//
 // struct OnePole {
 //     s1: f32,
 //     pub coefficients: Coefficients,
@@ -114,4 +117,4 @@ impl PeakHold {
 //     pub fn identity() -> Self {
 //         Self { a0: 1.0, b1: 0.0 }
 //     }
-// }
+// 
